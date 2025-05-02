@@ -1,0 +1,51 @@
+# ─── macOS ─────────────────────────────────────────────────────────
+.DS_Store
+
+# ─── PyCharm IDE ──────────────────────────────────────────────────
+.idea/
+*.iml
+
+# ─── Python bytecode ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ─── Virtual environments & env files ─────────────────────────────
+venv/
+env/
+.venv/
+.env
+
+# ─── Jupyter Notebooks ────────────────────────────────────────────
+.ipynb_checkpoints
+
+# ─── Data & model artifacts (large/binary) ────────────────────────
+# ignore raw datasets, trained models, checkpoints
+/data/
+/models/
+/checkpoints/
+/mlruns/
+
+# ─── Logs & reports ───────────────────────────────────────────────
+logs/
+*.log
+coverage.xml
+htmlcov/
+
+# ─── Build & distribution ─────────────────────────────────────────
+dist/
+build/
+eggs/
+*.egg-info/
+*.whl
+
+# ─── Testing caches ───────────────────────────────────────────────
+.pytest_cache/
+
+# ─── SQLite / DB files ────────────────────────────────────────────
+*.db
+*.sqlite3
+
+# ─── Miscellaneous ────────────────────────────────────────────────
+pip-selfcheck.json
+
