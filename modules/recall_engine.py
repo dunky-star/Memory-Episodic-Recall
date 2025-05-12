@@ -21,7 +21,7 @@ class RecallEngine:
         """
         top_k: number of highest‑scoring memories to retrieve.
         """
-        self.top_k = top_k
+        self.top_k = int(top_k)
 
     def recall(self, z_query: torch.Tensor, memory: EpisodicMemory) -> torch.Tensor:
         """

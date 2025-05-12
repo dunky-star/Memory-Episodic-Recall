@@ -1,4 +1,3 @@
-
 # modules/epinet_model.py
 
 import torch
@@ -20,7 +19,6 @@ class EpiNetModel(nn.Module):
     """
     def __init__(
         self,
-        input_dim: int,
         latent_dim: int,
         hidden_dim: int,
         num_classes: int,
@@ -34,12 +32,12 @@ class EpiNetModel(nn.Module):
         self.device      = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # Core modules
-        self.encoder       = Encoder(input_dim, latent_dim)
+        self.encoder       = Encoder(latent_dim)
         self.decoder       = Decoder(latent_dim, hidden_dim, num_classes)
         self.memory        = EpisodicMemory(capacity, latent_dim, decay_rate, self.device)
         self.recall_engine = RecallEngine(top_k)
 
-        # Loss & hyperparams
+        # Loss and hyperparameters
         self.criterion   = nn.CrossEntropyLoss()
         self.lambda_coef = lambda_coef
 
@@ -61,7 +59,7 @@ class EpiNetModel(nn.Module):
         y = y.to(self.device)
         loss_task = self.criterion(logits, y)
 
-        # Replay loss per Core Math
+        # --- Replay loss per Core Math with capacity guard ---
         # Decayed salience: [N]
         salience_mem = self.memory.mem_ctrl.decay(
             self.memory.r0_buffer,
@@ -75,30 +73,36 @@ class EpiNetModel(nn.Module):
         )
         # Recall scores [B, N]
         recall_scores = cos_sim_mem * salience_mem.unsqueeze(0)
-        # Top-K indices [B, K]
-        _, top_idx = torch.topk(
-            recall_scores,
-            self.recall_engine.top_k,
-            dim=1
-        )
-        # Gather for replay
-        salience_topk = salience_mem[top_idx]          # [B,K]
-        z_topk        = self.memory.z_buffer[top_idx]   # [B,K,d]
-        y_topk        = self.memory.y_buffer[top_idx]   # [B,K]
-        # Flatten for batch decode
-        B, K, d = z_topk.shape
-        z_flat       = z_topk.view(B*K, d)
-        zero_r       = torch.zeros_like(z_topk)
-        r_flat       = zero_r.view(B*K, d)
-        y_flat       = y_topk.view(B*K)
-        # Replay logits & losses
-        logits_mem = self.decoder(z_flat, r_flat)
-        losses_mem = F.cross_entropy(logits_mem, y_flat, reduction='none').view(B, K)
-        # Weighted sum
-        loss_replay = (salience_topk * losses_mem).sum()
 
-        # Total loss
-        loss = loss_task + self.lambda_coef * loss_replay
+        # Only compute replay if we have any memories
+        N = self.memory.z_buffer.size(0)
+        if N > 0:
+            # clamp k by current memory size
+            k = min(self.recall_engine.top_k, N)
+            _, top_idx = torch.topk(
+                recall_scores,
+                k,
+                dim=1
+            )
+            # Gather for replay
+            salience_topk = salience_mem[top_idx]        # [B,K]
+            z_topk        = self.memory.z_buffer[top_idx] # [B,K,d]
+            y_topk        = self.memory.y_buffer[top_idx] # [B,K]
+            # Flatten for batch decode
+            B, K, d = z_topk.shape
+            z_flat = z_topk.view(B*K, d)
+            r_flat = torch.zeros_like(z_flat)
+            y_flat = y_topk.view(B*K)
+            # Replay logits and per-item losses
+            logits_mem = self.decoder(z_flat, r_flat)
+            losses_mem = F.cross_entropy(logits_mem, y_flat, reduction='none').view(B, K)
+            # Weighted sum for replay loss
+            loss_replay = (salience_topk * losses_mem).sum()
+            # Total loss with replay
+            loss = loss_task + self.lambda_coef * loss_replay
+        else:
+            # No memories yet, skip replay
+            loss = loss_task
 
         # Update episodic memory
         with torch.no_grad():
@@ -108,4 +112,5 @@ class EpiNetModel(nn.Module):
                 self.memory.add(zi, zi, initial_r0, yi)
 
         return loss
+
 

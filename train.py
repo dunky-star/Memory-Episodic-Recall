@@ -90,7 +90,6 @@ def train_split_mnist(
     # Instantiate model, optimizer, and mixed‐precision scaler
     input_dim = 28 * 28
     model = EpiNetModel(
-        input_dim=input_dim,
         latent_dim=latent_dim,
         hidden_dim=hidden_dim,
         num_classes=num_classes,
