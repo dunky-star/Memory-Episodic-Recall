@@ -48,7 +48,7 @@ def train_one_task(
             scaler.step(optimizer)
             scaler.update()
             running_loss += loss.item() * x.size(0)
-        avg_loss = running_loss / len(train_loader.dataset)
+        avg_loss = running_loss / len(train_loader.dataset) # type: ignore
 
         # Evaluation pass
         acc = evaluate(model, test_loader, device)
