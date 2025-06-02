@@ -1,6 +1,7 @@
 import torch
 import time
 
+# 3. MemoryController Module
 class MemoryController:
     """
     Computes the biologically-inspired salience decay.

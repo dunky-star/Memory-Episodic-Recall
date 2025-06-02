@@ -4,6 +4,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+#   - `z_t` ∈ ℝᵈ: latent embedding from the encoder
+#   - `r_t` ∈ ℝᵈ: recall embedding from the memory
+# Concatenate `[z_t; r_t]` → ℝ²ᵈ
+
+# 6. Decoder Module
+
 class Decoder(nn.Module):
     """
     Mixture-of-Experts Decoder for EpiNet.
@@ -48,7 +54,8 @@ class Decoder(nn.Module):
         h = torch.cat([z, r], dim=1)
         # Compute gating weights: [B, E]
         gate_logits = self.gate(h)
-        gate_weights = F.softmax(gate_logits, dim=1)
+        # gate_weights = F.softmax(gate_logits, dim=1)
+        gate_weights = F.softmax(gate_logits, 1)
         # Expert outputs: stack into [B, E, K]
         expert_outputs = torch.stack(
             [expert(h) for expert in self.experts],

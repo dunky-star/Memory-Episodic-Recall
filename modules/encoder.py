@@ -2,11 +2,8 @@ import torch
 import torch.nn as nn
 
 class Encoder(nn.Module):
-    """
-    Transforms input images into a latent embedding z.
-    E maps input xₜ into latent embedding zₜ ∈ ℝᵈ.
-    Following EpiNet core math: z = E(x).
-    """
+    """Transforms input images into a latent embedding z."""
+
     def __init__(self, latent_dim: int = 128):
         super(Encoder, self).__init__()
         self.feature_extractor = nn.Sequential(
@@ -18,9 +15,10 @@ class Encoder(nn.Module):
             nn.MaxPool2d(2),  # 14×14 → 7×7
             nn.Flatten(),  # → (64*7*7)
         )
-        self.project = nn.Linear(64 * 7 * 7, latent_dim) # 64*7*7 → latent_dim → z ∈ ℝᵈ
+        # Project flattened features to latent_dim
+        self.project = nn.Linear(64 * 7 * 7, latent_dim)  # → z ∈ ℝᵈ
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self.feature_extractor(x)
         z = self.project(features)
-        return z # Matches “z ∈ ℝᵈ”
+        return z  # Matches “z ∈ ℝᵈ”
